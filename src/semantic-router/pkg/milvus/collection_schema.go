@@ -17,6 +17,19 @@ type CollectionSchemaReader interface {
 	) (*entity.Collection, error)
 }
 
+// VectorDimensionMismatchError identifies an existing collection that cannot be
+// used with the resolved embedding width. It is not a connection failure.
+type VectorDimensionMismatchError struct {
+	CollectionName    string
+	StoredDimension   int
+	ExpectedDimension int
+}
+
+func (e *VectorDimensionMismatchError) Error() string {
+	return fmt.Sprintf("collection %s vector dimension mismatch: stored=%d expected=%d",
+		e.CollectionName, e.StoredDimension, e.ExpectedDimension)
+}
+
 // ValidateVectorDimension verifies that an existing collection contains the
 // expected float-vector field and dimension.
 func ValidateVectorDimension(
@@ -62,12 +75,11 @@ func ValidateVectorDimension(
 	}
 
 	if storedDimension != expectedDimension {
-		return fmt.Errorf(
-			"collection %s vector dimension mismatch: stored=%d expected=%d",
-			collectionName,
-			storedDimension,
-			expectedDimension,
-		)
+		return &VectorDimensionMismatchError{
+			CollectionName:    collectionName,
+			StoredDimension:   storedDimension,
+			ExpectedDimension: expectedDimension,
+		}
 	}
 
 	return nil

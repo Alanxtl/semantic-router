@@ -48,6 +48,11 @@ func TestValidateVectorDimension_Mismatch(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected dimension mismatch error")
 	}
+	var mismatch *VectorDimensionMismatchError
+	if !errors.As(err, &mismatch) || mismatch.CollectionName != "memories" ||
+		mismatch.StoredDimension != 3 || mismatch.ExpectedDimension != 4 {
+		t.Fatalf("expected typed mismatch with collection dimensions, got %v", err)
+	}
 	if !strings.Contains(err.Error(), "stored=3") || !strings.Contains(err.Error(), "expected=4") {
 		t.Fatalf("dimension details missing from error: %v", err)
 	}
@@ -60,6 +65,10 @@ func TestValidateVectorDimension_DescribeError(t *testing.T) {
 	err := ValidateVectorDimension(context.Background(), reader, "memories", "embedding", 3)
 	if err == nil || !strings.Contains(err.Error(), wantErr.Error()) {
 		t.Fatalf("expected describe error, got %v", err)
+	}
+	var mismatch *VectorDimensionMismatchError
+	if !errors.Is(err, wantErr) || errors.As(err, &mismatch) {
+		t.Fatalf("describe error must retain its cause without becoming a dimension mismatch: %v", err)
 	}
 }
 
